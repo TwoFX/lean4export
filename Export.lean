@@ -24,24 +24,24 @@ def M.run (env : Environment) (act : M α) : IO α :=
       act
 
 @[inline]
-def getIdx [Hashable α] [BEq α] (x : α) (getM : State → HashMap α Nat) (setM : State → HashMap α Nat → State) (rec : M String) : M Nat := do
+def getIdx [Hashable α] [BEq α] (x : α) (getM : State → HashMap α Nat) (setM : State → HashMap α Nat → State) (pref : String) (rec : M String) : M Nat := do
   let m ← getM <$> get
   if let some idx := m[x]? then
     return idx
   let s ← rec
   let m ← getM <$> get
   let idx := m.size
-  IO.println s!"{idx} {s}"
+  IO.println s!"{pref} {idx} {s}"
   modify fun st => setM st ((getM st).insert x idx)
   return idx
 
-def dumpName (n : Name) : M Nat := getIdx n (·.visitedNames) ({ · with visitedNames := · }) do
+def dumpName (n : Name) : M Nat := getIdx n (·.visitedNames) ({ · with visitedNames := · }) "#NAME" do
   match n with
   | .anonymous => unreachable!
   | .str n s => return s!"#NS {← dumpName n} {s}"
   | .num n i => return s!"#NI {← dumpName n} {i}"
 
-def dumpLevel (l : Level) : M Nat := getIdx l (·.visitedLevels) ({ · with visitedLevels := · }) do
+def dumpLevel (l : Level) : M Nat := getIdx l (·.visitedLevels) ({ · with visitedLevels := · }) "#LVL" do
   match l with
   | .zero | .mvar _ => unreachable!
   | .succ l => return s!"#US {← dumpLevel l}"
@@ -124,7 +124,7 @@ where
       return (hadMData, e, idx)
     let idx := (← get).visitedExprs.size
     modify (fun st => { st with visitedExprs := st.visitedExprs.insert e idx })
-    IO.println s!"{idx} {← s}"
+    IO.println s!"#EXPR {idx} {← s}"
     return (hadMData, e, idx)
 
 @[inline]
@@ -194,6 +194,6 @@ where
   dumpDeps e := do
     for c in e.getUsedConstants do
       dumpConstant c
-  dumpRecRule (rule : RecursorRule) : M Nat := getIdx rule (·.visitedRecRules) ({ · with visitedRecRules := · }) do
+  dumpRecRule (rule : RecursorRule) : M Nat := getIdx rule (·.visitedRecRules) ({ · with visitedRecRules := · }) "#RECR" do
     dumpDeps (rule.rhs)
     return s!"#RR {← dumpName rule.ctor} {rule.nfields} {← dumpExpr rule.rhs}"
