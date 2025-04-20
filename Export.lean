@@ -167,9 +167,9 @@ partial def dumpConstant (c : Name) : M Unit := do
     dumpDeps val.type
     dumpDeps val.value
     IO.println s!"#OPAQ {← dumpName c} {← dumpExpr val.type} {← dumpExpr val.value} {← seq <$> val.levelParams.mapM dumpName}"
-  | .quotInfo val =>
-    dumpDeps val.type
-    IO.println s!"#QUOT {← dumpName c} {← dumpExpr val.type} {← seq <$> val.levelParams.mapM dumpName}"
+  | .quotInfo _ =>
+    -- Don't care
+    return
   | .inductInfo val => do
     dumpInductive val
     -- if val.isUnsafe then
