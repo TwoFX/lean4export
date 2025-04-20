@@ -168,7 +168,7 @@ partial def dumpConstant (c : Name) : M Unit := do
     dumpDeps val.value
     IO.println s!"#OPAQ {← dumpName c} {← dumpExpr val.type} {← dumpExpr val.value} {← seq <$> val.levelParams.mapM dumpName}"
   | .quotInfo _ =>
-    -- Don't care
+    IO.println s!"#QUOT"
     return
   | .inductInfo val => do
     dumpInductive val

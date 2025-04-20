@@ -84,6 +84,7 @@ Declaration ::=
     | InductiveFamily
     | Opaque
     | Constructor 
+    | Quotient
 
 nidx, uidx, eidx, ridx ::= nat
 
@@ -118,6 +119,8 @@ Axiom ::= "#AX" (name : nidx) (type : eidx) (uparams : nidx*)
 Def ::= "#DEF" (name : nidx) (type : eidx) (value : eidx) (hint : Hint) (uparams : nidx*)
   
 Theorem ::= "#THM" (name : nidx) (type : eidx) (value : eidx) (uparams: nidx*)
+
+Quotient ::= "#QUOT"
 
 Inductive ::= 
   "#IND"
