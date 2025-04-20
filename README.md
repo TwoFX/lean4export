@@ -67,10 +67,6 @@ Example: the encoding of `let x : Nat := Nat.zero; x` is
 
 For clarity, some of the compound items are decorated here with a name, for example `(name : T)`, but they appear in the export file as just an element of `T`.
 
-The export scheme for mutual and nested inductives is as follows: 
-+ `Inductive.inductiveNames` contains the names of all types in the `mutual .. end` block. The names of any other inductive types used in a nested (but not mutual) construction will not be included.
-+ `Inductive.constructorNames` contains the names of all constructors for THAT inductive type, and no others (no constructors of the other types in a mutual block, and no constructors from any nested construction).
-
 **NOTE:** readers writing their own parsers and/or checkers should initialize names[0] as the anonymous name, and levels[0] as universe zero, as they are not emitted by the exporter, but are expected to occupy the name and level indices for 0.
 
 ```
@@ -78,68 +74,64 @@ File ::= ExportFormatVersion Item*
 
 ExportFormatVersion ::= nat '.' nat '.' nat
 
-Item ::= Name | Universe | Expr | RecRule | Declaration
+Item ::= Name | Universe | Expr | Declaration
 
 Declaration ::= 
     | Axiom 
-    | Quotient 
     | Definition 
     | Theorem 
     | Inductive 
+    | InductiveFamily
+    | Opaque
     | Constructor 
-    | Recursor
 
 nidx, uidx, eidx, ridx ::= nat
 
 Name ::=
-  | nidx "#NS" nidx string
-  | nidx "#NI" nidx nat
+  | "#NAME" "#NS" nidx string
+  | "#NAME" "#NI" nidx nat
 
 Universe ::=
-  | uidx "#US"  uidx
-  | uidx "#UM"  uidx uidx
-  | uidx "#UIM" uidx uidx
-  | uidx "#UP"  nidx
+  | "#LVL" "#US"  uidx
+  | "#LVL" "#UM"  uidx uidx
+  | "#LVL" "#UIM" uidx uidx
+  | "#LVL" "#UP"  nidx
 
 Expr ::=
-  | eidx "#EV"  nat
-  | eidx "#ES"  uidx
-  | eidx "#EC"  nidx uidx*
-  | eidx "#EA"  eidx eidx
-  | eidx "#EL"  Info nidx eidx
-  | eidx "#EP"  Info nidx eidx eidx
-  | eidx "#EZ"  Info nidx eidx eidx eidx
-  | eidx "#EJ"  nidx nat eidx
-  | eidx "#ELN" nat
-  | eidx "#ELS" (hexhex)*
+  | "#EXPR" "#EV"  nat
+  | "#EXPR" "#ES"  uidx
+  | "#EXPR" "#EC"  nidx uidx*
+  | "#EXPR" "#EA"  eidx eidx
+  | "#EXPR" "#EL"  Info nidx eidx
+  | "#EXPR" "#EP"  Info nidx eidx eidx
+  | "#EXPR" "#EZ"  Info nidx eidx eidx eidx
+  | "#EXPR" "#EJ"  nidx nat eidx
+  | "#EXPR" "#ELN" nat
+  | "#EXPR" "#ELS" (hexhex)*
 
 Info ::= "#BD" | "#BI" | "#BS" | "#BC"
 
 Hint ::= "O" | "A" | "R" nat
 
-RecRule ::= ridx "#RR" (ctorName : nidx) (nFields : nat) (val : eidx)
+Axiom ::= "#AX" (name : nidx) (type : eidx) (uparams : nidx*)
 
-Axiom ::= "#AX" (name : nidx) (type : eidx) (uparams : uidx*)
-
-Def ::= "#DEF" (name : nidx) (type : eidx) (value : eidx) (hint : Hint) (uparams : uidx*)
+Def ::= "#DEF" (name : nidx) (type : eidx) (value : eidx) (hint : Hint) (uparams : nidx*)
   
-Theorem ::= "#THM" (name : nidx) (type : eidx) (value : eidx) (uparams: uidx*)
-
-Quotient ::= "#QUOT" (name : nidx) (type : eidx) (uparams : uidx*)
+Theorem ::= "#THM" (name : nidx) (type : eidx) (value : eidx) (uparams: nidx*)
 
 Inductive ::= 
   "#IND"
   (name : nidx) 
   (type : eidx) 
-  (isRecursive: 0 | 1)
-  (isNested : 0 | 1)
-  (numParams: nat) 
-  (numIndices: nat)
-  (numInductives: nat)
-  (inductiveNames: nidx {numInductives})
   (numConstructors : nat) 
   (constructorNames : nidx {numConstructors}) 
-  (uparams: uidx*)
+
+InductiveFamily ::=
+  "#INDF"
+  (numParams: nat)
+  (numInductives: nat)
+  (inductiveNames: nat)
+  (uparams: nidx*)
 
 Constructor ::= 
   "#CTOR"
@@ -151,18 +143,4 @@ Constructor ::=
   (numFields : nat)
   (uparams: uidx*)
 
-Recursor ::= 
-  "#REC"
-  (name : nidx)
-  (type : eidx)
-  (numInductives : nat)
-  (inductiveNames: nidx {numInductives})
-  (numParams : nat)
-  (numIndices : nat)
-  (numMotives : nat)
-  (numMinors : nat)
-  (numRules : nat)
-  (recRules : ridx {numRules})
-  (k : 1 | 0)
-  (uparams : uidx*)
 ```
