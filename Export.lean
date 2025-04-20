@@ -31,7 +31,7 @@ def getIdx [Hashable α] [BEq α] (x : α) (getM : State → HashMap α Nat) (se
   let s ← rec
   let m ← getM <$> get
   let idx := m.size
-  IO.println s!"{pref} {idx} {s}"
+  IO.println s!"{pref} {s}"
   modify fun st => setM st ((getM st).insert x idx)
   return idx
 
@@ -124,7 +124,7 @@ where
       return (hadMData, e, idx)
     let idx := (← get).visitedExprs.size
     modify (fun st => { st with visitedExprs := st.visitedExprs.insert e idx })
-    IO.println s!"#EXPR {idx} {← s}"
+    IO.println s!"#EXPR {← s}"
     return (hadMData, e, idx)
 
 @[inline]
@@ -136,6 +136,10 @@ def dumpHints : ReducibilityHints → String
   | .opaque => "O"
   | .abbrev => "A"
   | .regular n => s!"R {n}"
+
+instance : Min Name where
+  min n m := if Name.lt m n then m else n
+
 
 partial def dumpConstant (c : Name) : M Unit := do
   if (← get).visitedConstants.contains c then
@@ -167,16 +171,17 @@ partial def dumpConstant (c : Name) : M Unit := do
     dumpDeps val.type
     IO.println s!"#QUOT {← dumpName c} {← dumpExpr val.type} {← seq <$> val.levelParams.mapM dumpName}"
   | .inductInfo val => do
-    if val.isUnsafe then
-      return
-    dumpDeps val.type
-    for ctor in val.ctors do
-      dumpDeps ((← read).env.find? ctor |>.get!.type)
-    let indNameIdxs ← val.all.mapM dumpName
-    let ctorNameIdxs ← val.ctors.mapM (fun ctor => dumpName ctor)
-    let isRec := if val.isRec then 1 else 0
-    let isNested := if val.isNested then 1 else 0
-    IO.println s!"#IND {← dumpName c} {← dumpExpr val.type} {isRec} {isNested} {val.numParams} {val.numIndices} {indNameIdxs.length} {seq indNameIdxs} {val.numCtors} {seq ctorNameIdxs} {← seq <$> val.levelParams.mapM dumpName}"
+    dumpInductive val
+    -- if val.isUnsafe then
+    --   return
+    -- dumpDeps val.type
+    -- for ctor in val.ctors do
+    --   dumpDeps ((← read).env.find? ctor |>.get!.type)
+    -- let indNameIdxs ← val.all.mapM dumpName
+    -- let ctorNameIdxs ← val.ctors.mapM (fun ctor => dumpName ctor)
+    -- let isRec := if val.isRec then 1 else 0
+    -- let isNested := if val.isNested then 1 else 0
+    -- IO.println s!"#IND {← dumpName c} {← dumpExpr val.type} {isRec} {isNested} {val.numParams} {val.numIndices} {indNameIdxs.length} {seq indNameIdxs} {val.numCtors} {seq ctorNameIdxs} {← seq <$> val.levelParams.mapM dumpName}"
   | .ctorInfo val =>
     if val.isUnsafe then
       return
@@ -197,3 +202,24 @@ where
   dumpRecRule (rule : RecursorRule) : M Nat := getIdx rule (·.visitedRecRules) ({ · with visitedRecRules := · }) "#RECR" do
     dumpDeps (rule.rhs)
     return s!"#RR {← dumpName rule.ctor} {rule.nfields} {← dumpExpr rule.rhs}"
+  dumpInductiveInner (val : InductiveVal) : M Unit := do
+    if val.isUnsafe then
+      return
+    dumpDeps val.type
+    for ctor in val.ctors do
+      dumpDeps ((← read).env.find? ctor |>.get!.type)
+    let ctorNameIdxs ← val.ctors.mapM (fun ctor => dumpName ctor)
+    IO.println s!"#IND {← dumpName c} {← dumpExpr val.type} {val.numCtors} {seq ctorNameIdxs}"
+  dumpInductive (val : InductiveVal) : M Unit := do
+    if val.isUnsafe then
+      return
+    let some representative := val.all.min? | panic! "Unexpected inductive"
+    if val.name != representative then
+      -- We dump the entire inductive when encountering the representative
+      return
+    for iname in val.all do
+      let some (.inductInfo ival) := (← read).env.find? iname | panic! "Unexpected inductive"
+      dumpInductiveInner ival
+    let numParams := val.numParams
+    let indNameIdxs ← val.all.mapM dumpName
+    IO.println s!"#INDF {numParams} {indNameIdxs.length} {seq indNameIdxs} {← seq <$> val.levelParams.mapM dumpName}"

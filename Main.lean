@@ -1,7 +1,7 @@
 import Export
 open Lean
 
-def semver := "markus-0.0.1"
+def semver := "markus-0.0.2"
 
 def main (args : List String) : IO Unit := do
   initSearchPath (← findSysroot)
