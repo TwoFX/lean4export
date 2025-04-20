@@ -187,21 +187,13 @@ partial def dumpConstant (c : Name) : M Unit := do
       return
     dumpDeps val.type
     IO.println s!"#CTOR {← dumpName c} {← dumpExpr val.type} {← dumpName val.induct} {val.cidx} {val.numParams} {val.numFields} {← seq <$> val.levelParams.mapM dumpName}"
-  | .recInfo val =>
-    if val.isUnsafe then
-      return
-    dumpDeps val.type
-    let indNameIdxs ← val.all.mapM dumpName
-    let k := if val.k then 1 else 0
-    let ruleIdxs ← val.rules.mapM (fun rule => dumpRecRule rule)
-    IO.println s!"#REC {← dumpName c} {← dumpExpr val.type} {indNameIdxs.length} {seq indNameIdxs} {val.numParams} {val.numIndices} {val.numMotives} {val.numMinors} {ruleIdxs.length} {seq ruleIdxs} {k} {← seq <$> val.levelParams.mapM dumpName}"
+  | .recInfo _ =>
+    -- Don't care
+    return
 where
   dumpDeps e := do
     for c in e.getUsedConstants do
       dumpConstant c
-  dumpRecRule (rule : RecursorRule) : M Nat := getIdx rule (·.visitedRecRules) ({ · with visitedRecRules := · }) "#RECR" do
-    dumpDeps (rule.rhs)
-    return s!"#RR {← dumpName rule.ctor} {rule.nfields} {← dumpExpr rule.rhs}"
   dumpInductiveInner (val : InductiveVal) : M Unit := do
     if val.isUnsafe then
       return
